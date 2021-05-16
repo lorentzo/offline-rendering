@@ -1,0 +1,5 @@
+
+TODO:
+Scattering coeffs are low. Too low?
+Geometry positions?
+Find other sources for sky rendering?
