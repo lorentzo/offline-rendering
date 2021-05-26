@@ -25,8 +25,9 @@ class vec3
     double z() const { return v[2]; }
 
     // Functions.
-
     vec3 operator-() const { return vec3(-v[0], -v[1], -v[2]); }
+    double operator[](int i) const { return v[i]; }
+    double& operator[](int i) { return v[i]; }
 
     vec3& operator+=(const vec3 &c)
     {
