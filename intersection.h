@@ -176,7 +176,7 @@ class AABB
     point3 min() const { return minimum; }
     point3 max() const { return maximum; }
 
-    bool hit(const ray& r, double t_min, double t_max) const {
+    bool intersect(const ray& r, double t_min, double t_max) const {
         for (int a = 0; a < 3; a++) {
             auto t0 = fmin((minimum[a] - r.origin()[a]) / r.direction()[a],
                             (maximum[a] - r.origin()[a]) / r.direction()[a]);
@@ -193,6 +193,65 @@ class AABB
   private:
     point3 minimum;
     point3 maximum;
+};
+
+class constant_medium : public Intersectable {
+    public:
+        constant_medium(std::shared_ptr<Intersectable> _shape, double _density, color _color)
+            : shape(_shape),
+              density(_density),
+              neg_inv_density(-1.0/_density)
+              //phase_function(make_shared<isotropic>(_color)) TODO
+            {}
+
+        virtual bool intersect(
+            const ray& r, double t_min, double t_max, IntersectionContext& intersection_context) const override;
+
+    public:
+        std::shared_ptr<Intersectable> shape;
+        //std::shared_ptr<material> phase_function; TODO
+        double density;
+        double neg_inv_density;
+};
+
+// Make sure this works for ray origins inside the volume. In clouds, things bounce around a lot. 
+// Code assumes that once a ray exits the constant medium boundary, it will continue forever outside the boundary
+// - assumes boundary shape is convex.
+// TODO: add scattering, setup the scene.
+bool constant_medium::intersect(const ray& r, double t_min, double t_max, IntersectionContext& intersection_context) const {
+
+    IntersectionContext context1, context2;
+
+    if (!shape->intersect(r, -infinity, infinity, context1))
+        return false;
+
+    if (!shape->intersect(r, context1.t+0.0001, infinity, context2))
+        return false;
+
+    if (context1.t < t_min) context1.t = t_min;
+    if (context2.t > t_max) context2.t = t_max;
+
+    if (context1.t >= context2.t)
+        return false;
+
+    if (context1.t < 0)
+        context1.t = 0;
+
+    const auto ray_length = r.direction().length();
+    const auto distance_inside_boundary = (context2.t - context1.t) * ray_length;
+    const auto hit_distance = neg_inv_density * log(random_double());
+
+    if (hit_distance > distance_inside_boundary)
+        return false;
+
+    intersection_context.t = context1.t + hit_distance / ray_length;
+    intersection_context.p = r.at(intersection_context.t);
+
+    intersection_context.normal = vec3(1,0,0);  // arbitrary
+    intersection_context.front_face = true;     // also arbitrary
+    //intersection_context.mat_ptr = phase_function; TODO
+
+    return true;
 }
 
 #endif
