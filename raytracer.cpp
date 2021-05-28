@@ -24,8 +24,8 @@ int main()
     const auto aspect_ratio = 16.0 / 9.0; // w / h
     const int image_width = 800;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const int samples_per_pixel = 1;
-    const int max_depth = 2;
+    const int samples_per_pixel = 5;
+    const int max_depth = 100;
 
     // Camera properties.
     point3 look_from = point3(0.0, 0.0, 0.0); // TODO
@@ -37,11 +37,12 @@ int main()
     IntersectableList scene;
     //auto sphere_earth = std::make_shared<Sphere>(point3(0.0, 0.0, 0.0), 6360e3, MaterialType::diffuse);
     //auto sphere2_atmosphere = std::make_shared<Sphere>(point3(0.0, 0.0, 0.0), 6420e3, MaterialType::diffuse);
-    auto sphere = std::make_shared<Sphere>(point3(0.0, 10.0, 0.0), 2.0, MaterialType::volume);
+    auto sphere = std::make_shared<Sphere>(point3(0.0, 5.0, 0.0), 2.0, MaterialType::diffuse);
+    auto sphere_medium = std::make_shared<ConstantMedium>(sphere, 0.3, color(0.5, 0.5, 0.5));
     //auto sphere_light = std::make_shared<Sphere>(point3(0.3, 0.3, -1), 0.3, MaterialType::nonReflective_diffuse_emission);
     //scene.add(sphere_earth);
     //scene.add(sphere2_atmosphere);
-    scene.add(sphere);
+    scene.add(sphere_medium);
     //scene.add(sphere_light);
     NishitaSky nishita_sky(6360e3, 6420e3, 4, 2, vec3(1.0, 0.0, 0.0), vec3(20), 7994, 1200);
     
@@ -91,7 +92,6 @@ int main()
                             max_depth, 
                             EnvironmentType::sky,
                             nishita_sky);
-                    //std::cerr<<"Nema objekata, dakle ovo se ne bi trebalo ispisivati"<<std::endl;
                 }
                 else
                 {

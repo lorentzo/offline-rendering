@@ -129,35 +129,24 @@ bool Sphere::intersect(
     double t_max,
     IntersectionContext& intersection_context) const
 {
-    // Quadratic equation of t describing ray-sphere intersection.
     vec3 oc = r.origin() - center;
-    auto a = dot(r.direction(), r.direction()); // or r.direction().length_squared()
-    auto b = 2.0 * dot(r.direction(), oc);
-    auto c = dot(oc, oc) - radius * radius;
-    auto discriminant = b * b - 4 * a * c; // tells if there are real solutions
-    if (discriminant < 0)
-        return false;
+    auto a = r.direction().length_squared();
+    auto half_b = dot(oc, r.direction());
+    auto c = oc.length_squared() - radius*radius;
 
-    // Find nearest solution (t, nearest intersection) in range [t_min, t_max].
-    // TODO other t can be used for volumentrics.
-    
-    auto sqrt_discriminant = sqrt(discriminant);
-    /*
-    auto root = (-b - sqrt_discriminant) / (2 * a); // set to root1
-    if(root < t_min || root > t_max)
-    {
-        root = (-b + sqrt_discriminant) / (2 * a); // set to root2
-        if(root < t_min || root > t_max)
+    auto discriminant = half_b*half_b - a*c;
+    if (discriminant < 0) return false;
+    auto sqrtd = sqrt(discriminant);
+
+    // Find the nearest root that lies in the acceptable range.
+    auto root = (-half_b - sqrtd) / a;
+    if (root < t_min || t_max < root) {
+        root = (-half_b + sqrtd) / a;
+        if (root < t_min || t_max < root)
             return false;
     }
-    */
-    auto t1 = (-b - sqrt_discriminant) / (2 * a);
-    auto t2 = (-b + sqrt_discriminant) / (2 * a);
-    if(t2 < t_min || t1 > t_max) // not visible
-        return false;
 
-    intersection_context.t = t1;
-    intersection_context.t2 = t2;
+    intersection_context.t = root;
     intersection_context.p = r.at(intersection_context.t);
     vec3 outward_normal = normalize(intersection_context.p - center);
     intersection_context.set_face_normal(r, outward_normal);
@@ -195,30 +184,32 @@ class AABB
     point3 maximum;
 };
 
-class constant_medium : public Intersectable {
+class ConstantMedium : public Intersectable {
     public:
-        constant_medium(std::shared_ptr<Intersectable> _shape, double _density, color _color)
+        ConstantMedium(
+            std::shared_ptr<Intersectable> _shape, 
+            double _density, 
+            color _color)
             : shape(_shape),
               density(_density),
-              neg_inv_density(-1.0/_density)
-              //phase_function(make_shared<isotropic>(_color)) TODO
+              neg_inv_density(-1.0/_density),
+              material_type(MaterialType::constant_medium)
             {}
 
         virtual bool intersect(
             const ray& r, double t_min, double t_max, IntersectionContext& intersection_context) const override;
 
-    public:
+    private:
         std::shared_ptr<Intersectable> shape;
-        //std::shared_ptr<material> phase_function; TODO
         double density;
         double neg_inv_density;
+        MaterialType material_type;
 };
 
 // Make sure this works for ray origins inside the volume. In clouds, things bounce around a lot. 
 // Code assumes that once a ray exits the constant medium boundary, it will continue forever outside the boundary
 // - assumes boundary shape is convex.
-// TODO: add scattering, setup the scene.
-bool constant_medium::intersect(const ray& r, double t_min, double t_max, IntersectionContext& intersection_context) const {
+bool ConstantMedium::intersect(const ray& r, double t_min, double t_max, IntersectionContext& intersection_context) const {
 
     IntersectionContext context1, context2;
 
@@ -249,7 +240,7 @@ bool constant_medium::intersect(const ray& r, double t_min, double t_max, Inters
 
     intersection_context.normal = vec3(1,0,0);  // arbitrary
     intersection_context.front_face = true;     // also arbitrary
-    //intersection_context.mat_ptr = phase_function; TODO
+    intersection_context.material_type = material_type;
 
     return true;
 }

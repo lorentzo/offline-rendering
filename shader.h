@@ -108,6 +108,13 @@ color recursive_shading_engine(
             //c.print_vec();
             return c / n_segments;
         }
+        else if(intersection_context.material_type == MaterialType::constant_medium)
+        {
+            ray scattered_ray = ray(intersection_context.p, random_unit_vector_on_sphere());
+
+            // Attenuate (absorb) when hitting and continue tracing.
+            return 0.7 * recursive_shading_engine(scattered_ray, scene, intersection_context, depth-1, environment_type, nishita_sky);
+        }
         else
         {
             return color(1.0, 0.0, 1.0); // color code for non-existing material

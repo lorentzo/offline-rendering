@@ -12,7 +12,14 @@
 // STD headers
 #include <iostream>
 
-enum EnvironmentType {black, white, sky, gradient, nishita};
+enum EnvironmentType 
+{
+    black, 
+    white, 
+    sky, 
+    gradient, 
+    nishita
+};
 
 // Non emissive. Constant black.
 color black_env()
